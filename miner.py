@@ -7,6 +7,15 @@ RELAYS = ["wss://relay.damus.io","wss://nos.lol","wss://relay.primal.net"]
 TAGS = ["Payments/Cashu","Relay","Identity/WoT","Privacy/Messaging","Client","SDK",
         "NoT/P2P","AI/DVM","Search","KeyMgmt","General"]
 
+def _sslopt():
+    # TLS certificate verification is ON by default. Set MINER_INSECURE=1
+    # only for local testing against a self-signed relay — never in
+    # production: disabling verification exposes the relay input to MITM
+    # tampering, which directly corrupts the mined index.
+    if os.environ.get("MINER_INSECURE") == "1":
+        return {"cert_reqs": ssl.CERT_NONE}
+    return {}
+
 def classify(text):
     t = text.lower()
     for kw, tag in [("cashu","Payments/Cashu"),("nwc","Payments/Cashu"),("relay","Relay"),
@@ -17,7 +26,7 @@ def classify(text):
     return "General"
 
 def mine(sample=20):
-    ws = websocket.create_connection(RELAYS[0], sslopt={"cert_reqs": ssl.CERT_NONE})
+    ws = websocket.create_connection(RELAYS[0], sslopt=_sslopt())
     ws.send(json.dumps(["REQ","miner",{"authors":[FEED],"limit":sample}]))
     tools = {}
     for _ in range(sample*2):
